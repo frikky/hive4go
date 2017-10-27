@@ -22,7 +22,7 @@ resp, err := thehive.CreateCase(login, "hive4go title", "hive4go desc", tlp, sev
 ...Alerts etc
 
 # Todo
-Add to go get repo
-Missing all the gets, got all the posts
-Implement kwargs somehow
-Create an actual readme
+Add to go get repo<br>
+Missing all the gets, got all the posts<br>
+Implement kwargs somehow<br>
+Create an actual readme<br>

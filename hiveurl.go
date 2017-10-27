@@ -3,6 +3,7 @@ package thehive
 /*
 	Attempt at making a "TheHive" api for golang.
 	Hive4go?
+	Static stuff sucks tho
 */
 
 import (
@@ -74,7 +75,7 @@ func CreateCase(hive Hivedata, title string, description string, tlp int, severi
 	if title == "" {
 		fmt.Println("Title not set.")
 		os.Exit(3)
-		// WHat do I do here?
+		// WHat do I do here? idk
 	}
 
 	if description == "" {
@@ -123,6 +124,7 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string) Arti
 }
 
 /*
+// Notes from python to find cases
 func getCase(hive Hivedata) {
 	//hive.url = url
 	//req = self.url + "/api/case/{}".format(case_id)

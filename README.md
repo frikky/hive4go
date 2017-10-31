@@ -1,8 +1,8 @@
 # Hive4go
-Statically typed TheHive API which so far can create cases and alerts. 
+Statically typed TheHive API for Golang. 
 
 # Missing
-Since it's not released yet, just add hive4go to ~/go/src/github.com/frikky/hive4go
+Since it's not released yet, just clone to github.com/ in $GOPATH
 ```Go
 import "github.com/frikky/hive4go
 ```
@@ -22,7 +22,12 @@ resp, err := thehive.CreateCase(login, "hive4go title", "hive4go desc", tlp, sev
 ...Alerts etc
 
 # Todo
-Add to go get repo<br>
-Missing all the gets, got all the posts<br>
-Implement kwargs somehow<br>
+[FINISHED] Missing all the gets, got all the posts<br>
+[FINISHED] Added most of the get methods<br>
+[ALMOST FINISHED] Written tests, needs formatting -> publish<br>
+Return raw json and not \*grequests.response<br>
+Requirements for running (e.g. grequests)<br>
+Thorougly test get methods. Queries don't work properly yet.<br>
 Create an actual readme<br>
+Add to \"go get\" repo<br>
+Implement kwargs somehow<br>

@@ -40,6 +40,7 @@ type Artifact struct {
 type AlertData struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
+	Severity    int        `json:"severity"`
 	Tlp         int        `json:"tlp"`
 	Tags        []string   `json:"tags"`
 	Type        string     `json:"type"`
@@ -104,7 +105,7 @@ func CreateCase(hive Hivedata, title string, description string, tlp int, severi
 	// FIX - might point to same memory, so make a duplicate without editing
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
 
-	url = fmt.Sprintf("http://%s%s", hive.Url, "/api/case")
+	url = fmt.Sprintf("%s%s", hive.Url, "/api/case")
 	ret, err := grequests.Post(url, &hive.Ro)
 
 	return ret, err
@@ -123,23 +124,47 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string) Arti
 	return curartifact
 }
 
-/*
-// Notes from python to find cases
-func getCase(hive Hivedata) {
-	//hive.url = url
-	//req = self.url + "/api/case/{}".format(case_id)
-	url = fmt.Sprintf("http://%s%s", hive.url, "/api/case")
-	return grequests.get(req, hive.ro)
-}
-req = self.url + "/api/case/{}".format(case_id)
+func GetCase(hive Hivedata, case_id string) (*grequests.Response, error) {
+	var url, urlpath string
 
-        try:
-					        except requests.exceptions.RequestException as e:
-							            sys.exit("Error: {}".format(e))
-*/
+	urlpath = fmt.Sprintf("api/case/%s", case_id)
+	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
+
+	resp, err := grequests.Get(url, &hive.Ro)
+	return resp, err
+}
+
+func FindCases(hive Hivedata, search []byte) (*grequests.Response, error) {
+	var url = fmt.Sprintf("%s%s", hive.Url, "/api/case/_search?sort=%2Btlp&range=all")
+	hive.Ro.JSON = search
+
+	resp, err := grequests.Post(url, &hive.Ro)
+	return resp, err
+}
+
+func GetAlert(hive Hivedata, alert_id string) (*grequests.Response, error) {
+	var url, urlpath string
+
+	urlpath = fmt.Sprintf("api/alert/%s", alert_id)
+	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
+
+	resp, err := grequests.Get(url, &hive.Ro)
+	return resp, err
+}
+
+func FindAlerts(hive Hivedata, search []byte) (*grequests.Response, error) {
+	// Sorts by tlp by default
+	var url = fmt.Sprintf("%s%s", hive.Url, "/api/alert/_search?range=all")
+
+	//hive.Ro.JSON = []byte(`{"_in": {"_field": "tags", "_values": "DKBLPLPT108064"}}`)
+	hive.Ro.JSON = search
+
+	resp, err := grequests.Post(url, &hive.Ro)
+	return resp, err
+}
 
 // Attempts to create an alert
-func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description string, tlp int, tags []string, types string) (*grequests.Response, error) {
+func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, sourceref string) (*grequests.Response, error) {
 
 	var alert AlertData
 	var url string
@@ -151,7 +176,8 @@ func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description 
 		Artifacts:   artifacts,
 		Type:        types,
 		Tags:        tags,
-		SourceRef:   "#ASD1024",
+		SourceRef:   sourceref,
+		Severity:    severity,
 	}
 
 	jsondata, err := json.Marshal(alert)
@@ -164,7 +190,7 @@ func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description 
 	fmt.Println(string(jsondata))
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
 
-	url = fmt.Sprintf("http://%s%s", hive.Url, "/api/alert")
+	url = fmt.Sprintf("%s%s", hive.Url, "/api/alert")
 	ret, err := grequests.Post(url, &hive.Ro)
 
 	return ret, err

@@ -19,15 +19,14 @@ tlp, severity := 3
 resp, err := thehive.CreateCase(login, "hive4go title", "hive4go desc", tlp, severity, []string{"task"}, []string{"tags"})
 ```
 
-...Alerts etc
-
-# Todo
-[FINISHED] Missing all the gets, got all the posts<br>
-[FINISHED] Added most of the get methods<br>
-[ALMOST FINISHED] Written tests, needs formatting -> publish<br>
-Return raw json and not \*grequests.response<br>
-Requirements for running (e.g. grequests)<br>
-Thorougly test get methods. Queries don't work properly yet.<br>
-Create an actual readme<br>
-Add to \"go get\" repo<br>
-Implement kwargs somehow<br>
+# Todo (In order~)
+* [FINISHED] Missing all the gets, got all the posts
+* [FINISHED] Added most of the get methods
+* Create working case POST search (Copy alert)
+* Return raw json and not grequests.response (?) (Missing resp.String() formatted to JSON)
+* [ALMOST FINISHED] Written tests, needs formatting for publishing 
+* Requirements file for running (e.g. grequests)
+* Thorougly test get and post methods. Queries don't work properly yet.
+* Create an actual readme
+* Add to \"go get\" repothingy 
+* Implement kwargs somehow (Currently statically typed, keep old stuff too)

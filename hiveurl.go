@@ -11,6 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/levigross/grequests"
+	//"io/ioutil"
+	//"net/http"
 	"os"
 )
 
@@ -152,11 +154,53 @@ func GetAlert(hive Hivedata, alert_id string) (*grequests.Response, error) {
 	return resp, err
 }
 
-func FindAlerts(hive Hivedata, search []byte) (*grequests.Response, error) {
+// Gets a field and values in the field
+func FindAlertsQuery(hive Hivedata, queryfield string, queryvalues []string) (*grequests.Response, error) {
 	// Sorts by tlp by default
-	var url = fmt.Sprintf("%s%s", hive.Url, "/api/alert/_search?range=all")
+	var url string
 
-	//hive.Ro.JSON = []byte(`{"_in": {"_field": "tags", "_values": "DKBLPLPT108064"}}`)
+	url = fmt.Sprintf("%s%s", hive.Url, "/api/alert/_search?range=all")
+
+	type Search struct {
+		Field  string   `json:"_field"`
+		Values []string `json:"_values"`
+	}
+
+	type In struct {
+		Search `json:"_in"`
+	}
+
+	// This one isn't documented, but necessary to make the search work.
+	type Query struct {
+		In `json:"query"`
+	}
+
+	// Creates the json struct object
+	searchquery := Query{
+		In{
+			Search{
+				Field:  queryfield,
+				Values: queryvalues,
+			},
+		},
+	}
+
+	jsonsearch, err := json.Marshal(searchquery)
+	if err != nil {
+		return nil, err
+	}
+
+	hive.Ro.JSON = jsonsearch
+
+	resp, err := grequests.Post(url, &hive.Ro)
+	return resp, err
+}
+
+// Gets a raw json query and returns all data
+func FindAlertsRaw(hive Hivedata, search []byte) (*grequests.Response, error) {
+	var url string
+	url = fmt.Sprintf("%s%s", hive.Url, "/api/alert/_search?range=all")
+
 	hive.Ro.JSON = search
 
 	resp, err := grequests.Post(url, &hive.Ro)
@@ -164,7 +208,9 @@ func FindAlerts(hive Hivedata, search []byte) (*grequests.Response, error) {
 }
 
 // Attempts to create an alert
-func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, sourceref string) (*grequests.Response, error) {
+
+// Attempts to create an alert
+func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string) (*grequests.Response, error) {
 
 	var alert AlertData
 	var url string
@@ -177,6 +223,7 @@ func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description 
 		Type:        types,
 		Tags:        tags,
 		SourceRef:   sourceref,
+		Source:      source,
 		Severity:    severity,
 	}
 

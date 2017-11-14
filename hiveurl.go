@@ -11,9 +11,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/levigross/grequests"
-	//"io/ioutil"
-	//"net/http"
 	"os"
+	"time"
 )
 
 type Hivedata struct {
@@ -62,8 +61,8 @@ func CreateLogin(inurl string, inusername string, inpassword string) Hivedata {
 			Headers: map[string]string{
 				"Content-Type": "application/json",
 			},
+			RequestTimeout: time.Duration(10) * time.Second,
 		},
-		RequestTimeout: time.duration(10) * time.Second,
 	}
 
 	return logindata

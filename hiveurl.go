@@ -63,6 +63,7 @@ func CreateLogin(inurl string, inusername string, inpassword string) Hivedata {
 				"Content-Type": "application/json",
 			},
 		},
+		RequestTimeout: time.duration(10) * time.Second,
 	}
 
 	return logindata

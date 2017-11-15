@@ -236,7 +236,6 @@ func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description 
 		os.Exit(1)
 	}
 
-	fmt.Println(string(jsondata))
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
 
 	url = fmt.Sprintf("%s%s", hive.Url, "/api/alert")

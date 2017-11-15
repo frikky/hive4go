@@ -36,6 +36,7 @@ type Artifact struct {
 	Data     string   `json:"data"`
 	Tlp      int      `json:"tlp"`
 	Tags     []string `json:"tags"`
+	Ioc      bool     `json:"ioc"`
 }
 
 type AlertData struct {
@@ -113,7 +114,7 @@ func CreateCase(hive Hivedata, title string, description string, tlp int, severi
 	return ret, err
 }
 
-func AlertArtifact(dataType string, message string, tlp int, tags []string) Artifact {
+func AlertArtifact(dataType string, message string, tlp int, tags []string, ioc bool) Artifact {
 	var curartifact Artifact
 
 	curartifact = Artifact{
@@ -121,6 +122,7 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string) Arti
 		Data:     message,
 		Tlp:      tlp,
 		Tags:     tags,
+		Ioc:      ioc,
 	}
 
 	return curartifact

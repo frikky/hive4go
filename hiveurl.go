@@ -2,8 +2,7 @@ package thehive
 
 /*
 	Attempt at making a "TheHive" api for golang.
-	Hive4go?
-	Static stuff sucks tho
+	Static stuff sucks - should use structs
 */
 
 import (
@@ -15,6 +14,7 @@ import (
 	"time"
 )
 
+// Stores login data
 type Hivedata struct {
 	Url      string
 	Username string
@@ -22,6 +22,7 @@ type Hivedata struct {
 	Ro       grequests.RequestOptions
 }
 
+// Stores a hive case
 type Hivecase struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
@@ -31,6 +32,7 @@ type Hivecase struct {
 	Tasks       []string `json:"tasks"`
 }
 
+// Stores an artifact
 type Artifact struct {
 	DataType string   `json:"dataType"`
 	Data     string   `json:"data"`
@@ -39,6 +41,7 @@ type Artifact struct {
 	Ioc      bool     `json:"ioc"`
 }
 
+// Stores alertdata
 type AlertData struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
@@ -70,7 +73,6 @@ func CreateLogin(inurl string, inusername string, inpassword string) Hivedata {
 }
 
 // Creates a case and returns based on input data
-//func createCase(hive Hivedata, args ...args.V) {
 // Missing date
 func CreateCase(hive Hivedata, title string, description string, tlp int, severity int, tasks []string, tags []string) (*grequests.Response, error) {
 	var curcase Hivecase
@@ -114,6 +116,7 @@ func CreateCase(hive Hivedata, title string, description string, tlp int, severi
 	return ret, err
 }
 
+// Creates an alertartifact based on input
 func AlertArtifact(dataType string, message string, tlp int, tags []string, ioc bool) Artifact {
 	var curartifact Artifact
 
@@ -128,6 +131,7 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string, ioc 
 	return curartifact
 }
 
+// Gets a single case based on ID
 func GetCase(hive Hivedata, case_id string) (*grequests.Response, error) {
 	var url, urlpath string
 
@@ -138,6 +142,7 @@ func GetCase(hive Hivedata, case_id string) (*grequests.Response, error) {
 	return resp, err
 }
 
+// Finds all cases based on search parameter
 func FindCases(hive Hivedata, search []byte) (*grequests.Response, error) {
 	var url = fmt.Sprintf("%s%s", hive.Url, "/api/case/_search?sort=%2Btlp&range=all")
 	hive.Ro.JSON = search
@@ -146,6 +151,7 @@ func FindCases(hive Hivedata, search []byte) (*grequests.Response, error) {
 	return resp, err
 }
 
+// Gets an alert based on the alert_id
 func GetAlert(hive Hivedata, alert_id string) (*grequests.Response, error) {
 	var url, urlpath string
 
@@ -209,9 +215,7 @@ func FindAlertsRaw(hive Hivedata, search []byte) (*grequests.Response, error) {
 	return resp, err
 }
 
-// Attempts to create an alert
-
-// Attempts to create an alert
+// Creates a case
 func CreateAlert(hive Hivedata, artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string) (*grequests.Response, error) {
 
 	var alert AlertData

@@ -1,19 +1,24 @@
 # Hive4go
-Statically typed TheHive API for Golang. 
+Statically typed TheHive API for Golang.   
 
-# Missing
-Since it's not released yet, just clone to github.com/ in $GOPATH
+Based on https://github.com/CERT-BDF/TheHive4py
+
+# Install
+```Bash
+go get github.com/frikky/hive4go
+```
+
 ```Go
 import "github.com/frikky/hive4go
 ```
 
 # Usage
-Set login
+Set login, used as first parameter to all functions
 ```Go
-login = thehive.CreateLogin("ip", "username", "password")
+login := thehive.CreateLogin("ip", "username", "password")
 ```
 
-Create Case
+Create case example
 ```Go
 tlp, severity := 3
 resp, err := thehive.CreateCase(login, "hive4go title", "hive4go desc", tlp, severity, []string{"task"}, []string{"tags"})
@@ -22,11 +27,10 @@ resp, err := thehive.CreateCase(login, "hive4go title", "hive4go desc", tlp, sev
 # Todo (In order~)
 * [FINISHED] Missing all the gets, got all the posts
 * [FINISHED] Added most of the get methods
-* Create working case POST search (Copy alert)
-* Return raw json and not grequests.response (?) (Missing resp.String() formatted to JSON)
+* [FINISHED] Create working case POST search (Copy alert)
+* [FINISHED] Thorougly test get and post methods. Queries don't work properly yet.
 * [ALMOST FINISHED] Written tests, needs formatting for publishing 
-* Requirements file for running (e.g. grequests)
-* Thorougly test get and post methods. Queries don't work properly yet.
-* Create an actual readme
-* Add to \"go get\" repothingy 
+* Return raw json and not grequests.response (?) (Missing resp.String() or resp.Bytes())
 * Implement kwargs somehow (Currently statically typed, keep old stuff too)
+* Requirements file for running (e.g. grequests)
+* Create an actual readme

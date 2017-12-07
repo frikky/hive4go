@@ -15,7 +15,7 @@ import "github.com/frikky/hive4go
 # Usage
 Set login, used as first parameter to all functions
 ```Go
-login := thehive.CreateLogin("ip", "username", "password")
+login := thehive.CreateLogin("ip", "apikey")
 ```
 
 Create case example
@@ -29,6 +29,7 @@ resp, err := thehive.CreateCase(login, "hive4go title", "hive4go desc", tlp, sev
 * [FINISHED] Added most of the get methods
 * [FINISHED] Create working case POST search (Copy alert)
 * [FINISHED] Thorougly test get and post methods. Queries don't work properly yet.
+* [FINISHED] Deprecate BasicAuth (2.12+)
 * [ALMOST FINISHED] Written tests, needs formatting for publishing 
 * Return raw json and not grequests.response (?) (Missing resp.String() or resp.Bytes())
 * Implement kwargs somehow (Currently statically typed, keep old stuff too)

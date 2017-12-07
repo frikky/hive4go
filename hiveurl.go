@@ -105,7 +105,9 @@ func CreateCaseTask(hive Hivedata, caseId string, casetask CaseTask) (*grequests
 	return ret, err
 }
 
-// Defines basic login principles that can be reused in requests
+// Defines basicauth login principles that can be reused in requests
+// DEPRECATED
+/*
 func CreateLogin(inurl string, inusername string, inpassword string) Hivedata {
 	logindata := Hivedata{
 		Url:      inurl,
@@ -115,6 +117,24 @@ func CreateLogin(inurl string, inusername string, inpassword string) Hivedata {
 			Auth: []string{inusername, inpassword},
 			Headers: map[string]string{
 				"Content-Type": "application/json",
+			},
+			RequestTimeout: time.Duration(10) * time.Second,
+		},
+	}
+
+	return logindata
+}
+*/
+
+// Defines API login principles that can be reused in requests
+func CreateLogin(inurl string, apikey string) Hivedata {
+	formattedApikey := fmt.Sprintf("Bearer %s", apikey)
+	logindata := Hivedata{
+		Url: inurl,
+		Ro: grequests.RequestOptions{
+			Headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": formattedApikey,
 			},
 			RequestTimeout: time.Duration(10) * time.Second,
 		},

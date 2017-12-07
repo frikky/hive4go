@@ -24,12 +24,13 @@ type Hivedata struct {
 
 // Stores a hive case
 type Hivecase struct {
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Tlp         int      `json:"tlp"`
-	Severity    int      `json:"severity"`
-	Tags        []string `json:"tags"`
-	Tasks       []string `json:"tasks"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Tlp         int        `json:"tlp"`
+	Severity    int        `json:"severity"`
+	Tags        []string   `json:"tags"`
+	Tasks       []CaseTask `json:"tasks"`
+	Flag        bool       `json:"flag"`
 }
 
 // Stores an artifact
@@ -146,7 +147,7 @@ func CreateLogin(inurl string, apikey string) Hivedata {
 // Creates a case and returns based on input data
 // Missing date
 // FIX - All exits
-func CreateCase(hive Hivedata, title string, description string, tlp int, severity int, tasks []string, tags []string) (*grequests.Response, error) {
+func CreateCase(hive Hivedata, title string, description string, tlp int, severity int, tasks []CaseTask, tags []string, flag bool) (*grequests.Response, error) {
 	var curcase Hivecase
 	var url string
 
@@ -169,6 +170,7 @@ func CreateCase(hive Hivedata, title string, description string, tlp int, severi
 		Severity:    severity,
 		Tags:        tags,
 		Tasks:       tasks,
+		Flag:        flag,
 	}
 
 	// Encodes struct as json
@@ -207,7 +209,7 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string, ioc 
 func GetCase(hive Hivedata, case_id string) (*grequests.Response, error) {
 	var url, urlpath string
 
-	urlpath = fmt.Sprintf("api/case/%s", case_id)
+	urlpath = fmt.Sprintf("/api/case/%s", case_id)
 	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
 
 	resp, err := grequests.Get(url, &hive.Ro)
@@ -227,7 +229,7 @@ func FindCases(hive Hivedata, search []byte) (*grequests.Response, error) {
 func GetAlert(hive Hivedata, alert_id string) (*grequests.Response, error) {
 	var url, urlpath string
 
-	urlpath = fmt.Sprintf("api/alert/%s", alert_id)
+	urlpath = fmt.Sprintf("/api/alert/%s", alert_id)
 	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
 
 	resp, err := grequests.Get(url, &hive.Ro)

@@ -51,6 +51,57 @@ type AlertData struct {
 	Artifacts   []Artifact `json:"artifacts"`
 }
 
+type CaseTask struct {
+	Title       string `json:"title"`
+	Status      string `json:"status"`
+	Owner       string `json:"owner"`
+	Description string `json:"description"`
+	Flag        bool   `json:"flag"`
+}
+
+// FIX - missing file upload
+type CaseTaskLog struct {
+	Message string `json:"message"`
+}
+
+// FIX - Missing file upload - See Hive4py api.py and models.py
+func CreateTaskLog(hive Hivedata, taskId string, taskLog CaseTaskLog) (*grequests.Response, error) {
+	var url string
+	var err error
+	var jsondata []byte
+
+	jsondata, err = json.Marshal(taskLog)
+
+	if err != nil {
+		fmt.Println("Error in json")
+	}
+
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	url = fmt.Sprintf("%s/api/case/task/%s/log", hive.Url, taskId)
+	ret, err := grequests.Post(url, &hive.Ro)
+	return ret, err
+}
+
+func CreateCaseTask(hive Hivedata, caseId string, casetask CaseTask) (*grequests.Response, error) {
+	var url string
+	var err error
+	var jsondata []byte
+
+	jsondata, err = json.Marshal(casetask)
+
+	if err != nil {
+		fmt.Println("Error in json")
+	}
+
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	url = fmt.Sprintf("%s/api/case/%s/task", hive.Url, caseId)
+	ret, err := grequests.Post(url, &hive.Ro)
+
+	return ret, err
+}
+
 // Defines basic login principles that can be reused in requests
 func CreateLogin(inurl string, inusername string, inpassword string) Hivedata {
 	logindata := Hivedata{
@@ -72,6 +123,7 @@ func CreateLogin(inurl string, inusername string, inpassword string) Hivedata {
 // Creates a case and returns based on input data
 //func createCase(hive Hivedata, args ...args.V) {
 // Missing date
+// FIX - All exits
 func CreateCase(hive Hivedata, title string, description string, tlp int, severity int, tasks []string, tags []string) (*grequests.Response, error) {
 	var curcase Hivecase
 	var url string

@@ -21,15 +21,16 @@ login := thehive.CreateLogin("ip", "apikey")
 
 Create case example
 ```Go
+TLP, Severity := 3
 resp, err := thehive.CreateCase(
-	login,									// Api Login
-	"hive4go title", 						// Title
-	"hive4go desc", 						// Description
-	3, 										// TLP
-	3, 										// Severity
-	[]thehive.CaseTask{{Title: "task"}}, 	// Tasks
-	[]string{"tags"},						// Tags
-	true,									// Flag
+	login,									
+	"hive4go title", 						
+	"hive4go desc", 						
+	TLP, 									
+	Severity, 								
+	[]thehive.CaseTask{{Title: "task"}}, 	
+	[]string{"tags"},						
+	true,									
 )
 ```
 

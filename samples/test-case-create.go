@@ -11,9 +11,9 @@ func main() {
 	api := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
 
 	tasks := []thehive.CaseTask{
-		{Title: "Tracking"},
-		{Title: "Communication"},
-		{Title: "Investigation", Status: "Waiting", Flag: true},
+		thehive.CaseTask{Title: "Tracking"},
+		thehive.CaseTask{Title: "Communication"},
+		thehive.CaseTask{Title: "Investigation", Status: "Waiting", Flag: true},
 	}
 
 	fmt.Println("Create Case")

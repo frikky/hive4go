@@ -8,14 +8,6 @@ import (
 )
 
 func main() {
-	type Artifact struct {
-		DataType string   `json:"dataType"`
-		Data     string   `json:"data"`
-		Tlp      int      `json:"tlp"`
-		Tags     []string `json:"tags"`
-		Ioc      bool     `json:"ioc"`
-	}
-
 	api := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
 
 	tasks := []thehive.CaseTask{

@@ -9,12 +9,12 @@ import (
 )
 
 func main() {
-	api := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
+	hive := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
 
 	// Missing file
 	artifacts := []thehive.Artifact{
-		thehive.AlertArtifact("ip", "8.8.8.8", 0, []string{}, false),
-		thehive.AlertArtifact("domain", "google.com", 0, []string{}, false),
+		hive.AlertArtifact("ip", "8.8.8.8", 0, []string{}, false),
+		hive.AlertArtifact("domain", "google.com", 0, []string{}, false),
 		//thehive.AlertArtifact("file", "pic.png", 0, []string{}, 0)
 		//thehive.AlertArtifact("file", "sample.txt", 0, []string{}, 0)
 	}
@@ -22,8 +22,7 @@ func main() {
 	sourceRef := uuid.NewV4().String()
 	fmt.Println("Create Alert")
 	fmt.Println("--------------------------")
-	alert, err := thehive.CreateAlert(
-		api,         // Login
+	alert, err := hive.CreateAlert(
 		artifacts,   // Artifacts
 		"New Alert", // Title
 		"N/A",       // Description
@@ -50,7 +49,7 @@ func main() {
 	fmt.Printf("Get created alert %s\n", id)
 	fmt.Println("--------------------------")
 
-	response, err := thehive.GetAlert(api, id)
+	response, err := hive.GetAlert(id)
 	fmt.Println(response.StatusCode)
 	if err != nil {
 		fmt.Println(err)

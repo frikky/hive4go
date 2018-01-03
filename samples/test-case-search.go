@@ -8,12 +8,12 @@ import (
 )
 
 func main() {
-	api := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
+	hive := thehive.CreateLogin("http://127.0.0.1:9000", "hivekey")
 
 	// Example query - Turn into the new search format
 	query := `{"query": {"_in": {"_field": "tlp", "_values": [2]}}}`
 	queryBytes := []byte(query)
-	response, err := thehive.FindCases(api, queryBytes)
+	response, err := hive.FindCases(queryBytes)
 
 	if err != nil || response.StatusCode != 200 {
 		fmt.Println(err, response.StatusCode)

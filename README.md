@@ -22,8 +22,7 @@ login := thehive.CreateLogin("ip", "apikey")
 Create case example
 ```Go
 TLP, Severity := 3
-resp, err := thehive.CreateCase(
-	login,									
+resp, err := login.CreateCase(
 	"hive4go title", 						
 	"hive4go desc", 						
 	TLP, 									
@@ -34,9 +33,10 @@ resp, err := thehive.CreateCase(
 )
 ```
 
+More can be found in the samples folder.
+
 # Todos
 * [Some finished] Written tests, needs formatting for publishing 
-* Return raw json and not grequests.response (?) (Missing resp.String() or resp.Bytes())
 * Implement kwargs somehow (Currently statically typed, keep old stuff too)
 * Requirements file for running (e.g. grequests)
 * Create an actual readme

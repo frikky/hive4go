@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	api := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
+	hive := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
 
 	tasks := []thehive.CaseTask{
 		thehive.CaseTask{Title: "Tracking"},
@@ -18,8 +18,7 @@ func main() {
 
 	fmt.Println("Create Case")
 	fmt.Println("--------------------------")
-	Case, err := thehive.CreateCase(
-		api,            // Login
+	Case, err := hive.CreateCase(
 		"From hive4go", // Title
 		"N/A",          // Description
 		3,              // TLP
@@ -30,7 +29,7 @@ func main() {
 	)
 
 	if err != nil || Case.StatusCode != 201 {
-		fmt.Println(err, Case.StatusCode)
+		fmt.Println(err, Case)
 		os.Exit(1)
 	}
 
@@ -43,7 +42,7 @@ func main() {
 	// Get all the details of the created case
 	fmt.Printf("Get created case %s\n", id)
 	fmt.Println("--------------------------")
-	response, err := thehive.GetCase(api, id)
+	response, err := hive.GetCase(id)
 	if err != nil {
 		fmt.Println(err, response.StatusCode)
 		os.Exit(1)
@@ -56,8 +55,7 @@ func main() {
 	// Add a new task to the created case
 	fmt.Printf("Add a task %s\n", id)
 	fmt.Println("--------------------------")
-	response, err = thehive.CreateCaseTask(
-		api,
+	response, err = hive.CreateCaseTask(
 		id,
 		thehive.CaseTask{
 			Title:  "Yet another Task",

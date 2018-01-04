@@ -67,7 +67,12 @@ type CaseTaskLog struct {
 }
 
 // Defines API login principles that can be reused in requests
-func CreateLogin(inurl string, apikey string) Hivedata {
+// Takes three parameters:
+//  1. URL string
+//  2. API key
+//  3. Verify boolean that should be true in order to verify the servers certificate
+// Returns Hivedata struct
+func CreateLogin(inurl string, apikey string, verify bool) Hivedata {
 	formattedApikey := fmt.Sprintf("Bearer %s", apikey)
 	return Hivedata{
 		Url: inurl,
@@ -77,7 +82,7 @@ func CreateLogin(inurl string, apikey string) Hivedata {
 				"Authorization": formattedApikey,
 			},
 			RequestTimeout:     time.Duration(10) * time.Second,
-			InsecureSkipVerify: true,
+			InsecureSkipVerify: !verify,
 		},
 	}
 }

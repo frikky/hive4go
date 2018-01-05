@@ -14,7 +14,7 @@ import "github.com/frikky/hive4go"
 ```
 
 # Example usage
-Set login, used as first parameter to all functions
+Set logindata, used for any interactive APIcall 
 ```Go
 verifyCert := false
 login := thehive.CreateLogin("ip", "apikey", verifyCert)
@@ -23,6 +23,7 @@ login := thehive.CreateLogin("ip", "apikey", verifyCert)
 Create case example
 ```Go
 TLP, Severity := 3
+flag := true
 resp, err := login.CreateCase(
 	"hive4go title", 						
 	"hive4go desc", 						
@@ -30,7 +31,7 @@ resp, err := login.CreateCase(
 	Severity, 								
 	[]thehive.CaseTask{{Title: "task"}}, 	
 	[]string{"tags"},						
-	true,									
+	flag,									
 )
 ```
 

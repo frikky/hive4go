@@ -214,6 +214,16 @@ func (hive *Hivedata) GetAlert(alert_id string) (*grequests.Response, error) {
 	return resp, err
 }
 
+func (hive *Hivedata) GetTaskLogs(taskId string) (*grequests.Response, error) {
+	var url, urlpath string
+
+	urlpath = fmt.Sprintf("/api/case/task/%s", taskId)
+	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
+
+	resp, err := grequests.Get(url, &hive.Ro)
+	return resp, err
+}
+
 // Gets a field and values in the field
 func (hive *Hivedata) FindAlertsQuery(queryfield string, queryvalues []string) (*grequests.Response, error) {
 	// Sorts by tlp by default

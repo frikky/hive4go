@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	hive := thehive.CreateLogin("http://127.0.0.1:9000", "hivekey")
+	hive := thehive.CreateLogin("http://127.0.0.1:9000", "hivekey", false)
 
 	// Example query - Turn into the new search format
 	query := `{"query": {"_in": {"_field": "tlp", "_values": [2]}}}`

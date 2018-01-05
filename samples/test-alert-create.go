@@ -9,12 +9,12 @@ import (
 )
 
 func main() {
-	hive := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
+	hive := thehive.CreateLogin("http://127.0.0.1:9000", "apikey", false)
 
 	// Missing file
 	artifacts := []thehive.Artifact{
-		hive.AlertArtifact("ip", "8.8.8.8", 0, []string{}, false),
-		hive.AlertArtifact("domain", "google.com", 0, []string{}, false),
+		thehive.AlertArtifact("ip", "8.8.8.8", 0, []string{}, false),
+		thehive.AlertArtifact("domain", "google.com", 0, []string{}, false),
 		//thehive.AlertArtifact("file", "pic.png", 0, []string{}, 0)
 		//thehive.AlertArtifact("file", "sample.txt", 0, []string{}, 0)
 	}

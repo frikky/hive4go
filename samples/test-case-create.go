@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	hive := thehive.CreateLogin("http://127.0.0.1:9000", "apikey")
+	hive := thehive.CreateLogin("http://127.0.0.1:9000", "apikey", false)
 
 	tasks := []thehive.CaseTask{
 		thehive.CaseTask{Title: "Tracking"},

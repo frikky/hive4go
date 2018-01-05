@@ -16,7 +16,8 @@ import "github.com/frikky/hive4go"
 # Example usage
 Set login, used as first parameter to all functions
 ```Go
-login := thehive.CreateLogin("ip", "apikey")
+verifyCert := false
+login := thehive.CreateLogin("ip", "apikey", verifyCert)
 ```
 
 Create case example

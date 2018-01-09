@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/levigross/grequests"
+	//"os"
 	"time"
 )
 
@@ -21,7 +22,7 @@ type Hivedata struct {
 }
 
 // Stores a hive case
-type Hivecase struct {
+type HiveCase struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Tlp         int        `json:"tlp"`
@@ -29,6 +30,13 @@ type Hivecase struct {
 	Tags        []string   `json:"tags"`
 	Tasks       []CaseTask `json:"tasks"`
 	Flag        bool       `json:"flag"`
+	Raw         []byte     `json:"-"`
+}
+
+// Stores multiple hive cases from searches
+type HiveCaseMulti struct {
+	Raw    []byte
+	Detail []HiveCase
 }
 
 // Stores an artifact
@@ -38,10 +46,17 @@ type Artifact struct {
 	Tlp      int      `json:"tlp"`
 	Tags     []string `json:"tags"`
 	Ioc      bool     `json:"ioc"`
+	Raw      []byte   `json:"-"`
 }
 
-// Stores alertdata
-type AlertData struct {
+// Stores multiple artifacts from searches
+type HiveArtifactMulti struct {
+	Raw    []byte
+	Detail []Artifact
+}
+
+// Stores a hive alert
+type HiveAlert struct {
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
 	Severity    int        `json:"severity"`
@@ -51,9 +66,33 @@ type AlertData struct {
 	Source      string     `json:"source"`
 	SourceRef   string     `json:"sourceRef"`
 	Artifacts   []Artifact `json:"artifacts"`
+	Raw         []byte     `json:"-"`
 }
 
+// Stores multiple alerts from searches
+type HiveAlertMulti struct {
+	Raw    []byte
+	Detail []HiveAlert
+}
+
+// Stores a hive task
 type CaseTask struct {
+	Title       string `json:"title"`
+	Status      string `json:"status"`
+	Owner       string `json:"owner"`
+	Description string `json:"description"`
+	Flag        bool   `json:"flag"`
+	Raw         []byte `json:"-"`
+}
+
+// Stores multiple tasks from searches
+type CaseTaskMulti struct {
+	Raw    []byte
+	Detail []CaseTask
+}
+
+// Stores task responses
+type CaseTaskResponse struct {
 	Title       string `json:"title"`
 	Status      string `json:"status"`
 	Owner       string `json:"owner"`
@@ -63,11 +102,46 @@ type CaseTask struct {
 	Order       int    `json:"order"`
 	Id          string `json:"id"`
 	Type        string `json:"_type"`
+	Raw         []byte `json:"-"`
+}
+
+// Stores multiple task responses  from searches
+type CaseTaskRespMulti struct {
+	Raw    []byte
+	Detail []CaseTaskResponse
 }
 
 // FIX - missing file upload
+// Should maybe have title etc as well.
 type CaseTaskLog struct {
 	Message string `json:"message"`
+	Raw     []byte `json:"-"`
+}
+
+// Stores multiple casetasklogs
+type CaseTaskLogMulti struct {
+	Raw    []byte
+	Detail []CaseTaskLog
+}
+
+// Stores case tasklog responses
+type CaseTaskLogResponse struct {
+	Message   string `json:"message"`
+	Title     string `json:"title"`
+	CreatedBy string `json:"createdBy"`
+	Order     string `json:"order"`
+	Owner     string `json:"owner"`
+	Flag      bool   `json:"flag"`
+	Status    string `json:"status"`
+	Id        string `json:"id"`
+	Type      string `json:"_type"`
+	Raw       []byte `json:"-"`
+}
+
+// Stores multiple tasklog responses
+type CaseTaskLogRespMulti struct {
+	Raw    []byte
+	Detail []CaseTaskLogResponse
 }
 
 // Defines API login principles that can be reused in requests
@@ -91,8 +165,13 @@ func CreateLogin(inurl string, apikey string, verify bool) Hivedata {
 	}
 }
 
+// Defines case task log creation
 // FIX - Missing file upload - See Hive4py api.py and models.py
-func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*grequests.Response, error) {
+// Takes two parameters:
+//  1. taskId string
+//  2. taskLog CaseTaskLog
+// Returns CaseTaskLogresponse struct and response error
+func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*CaseTaskLogResponse, error) {
 	var url string
 	var err error
 	var jsondata []byte
@@ -108,10 +187,19 @@ func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*greque
 	url = fmt.Sprintf("%s/api/case/task/%s/log", hive.Url, taskId)
 	ret, err := grequests.Post(url, &hive.Ro)
 
-	return ret, err
+	parsedRet := new(CaseTaskLogResponse)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
-func (hive *Hivedata) CreateCaseTask(caseId string, casetask CaseTask) (*grequests.Response, error) {
+// Defines creation of a case task within a case
+// Takes two parameters:
+//  1. caseId string
+//  2. casetask CaseTask
+// Returns CaseTask struct and response error
+func (hive *Hivedata) CreateCaseTask(caseId string, casetask CaseTask) (*CaseTask, error) {
 	var url string
 	var err error
 	var jsondata []byte
@@ -127,13 +215,25 @@ func (hive *Hivedata) CreateCaseTask(caseId string, casetask CaseTask) (*greques
 	url = fmt.Sprintf("%s/api/case/%s/task", hive.Url, caseId)
 	ret, err := grequests.Post(url, &hive.Ro)
 
-	return ret, err
+	parsedRet := new(CaseTask)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
-// Creates a case and returns based on input data
-// Missing date
-func (hive *Hivedata) CreateCase(title string, description string, tlp int, severity int, tasks []CaseTask, tags []string, flag bool) (*grequests.Response, error) {
-	var curcase Hivecase
+// Defines creation of a case
+// Takes two parameters:
+//  1. title string
+//  2. description string
+//  3. tlp int
+// 	4. severity int
+// 	5. tasks []CaseTask
+// 	6. tags []string
+// 	7. flag bool
+// Returns HiveCase struct and response error
+func (hive *Hivedata) CreateCase(title string, description string, tlp int, severity int, tasks []CaseTask, tags []string, flag bool) (*HiveCase, error) {
+	var curcase HiveCase
 	var url string
 
 	if title == "" {
@@ -146,7 +246,7 @@ func (hive *Hivedata) CreateCase(title string, description string, tlp int, seve
 	}
 
 	// Creates case struct for json usage
-	curcase = Hivecase{
+	curcase = HiveCase{
 		Title:       title,
 		Description: description,
 		Tlp:         tlp,
@@ -169,7 +269,11 @@ func (hive *Hivedata) CreateCase(title string, description string, tlp int, seve
 	url = fmt.Sprintf("%s%s", hive.Url, "/api/case")
 	ret, err := grequests.Post(url, &hive.Ro)
 
-	return ret, err
+	parsedRet := new(HiveCase)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // Creates an alertartifact based on input
@@ -187,39 +291,64 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string, ioc 
 	return curartifact
 }
 
-// Gets a single case based on ID
-func (hive *Hivedata) GetCase(case_id string) (*grequests.Response, error) {
+// Defines creation of a case task within a case
+// Takes two parameters:
+//  1. title string
+//  2. description string
+//  3. tlp int
+// 	4. severity int
+// 	5. tasks []CaseTask
+// 	6. tags []string
+// 	7. flag bool
+// Returns HiveCase struct and response error
+func (hive *Hivedata) GetCase(case_id string) (*HiveCase, error) {
 	var url, urlpath string
 
 	urlpath = fmt.Sprintf("/api/case/%s", case_id)
 	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
 
-	resp, err := grequests.Get(url, &hive.Ro)
-	return resp, err
+	ret, err := grequests.Get(url, &hive.Ro)
+
+	parsedRet := new(HiveCase)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // Finds all cases based on search parameter
-func (hive *Hivedata) FindCases(search []byte) (*grequests.Response, error) {
+func (hive *Hivedata) FindCases(search []byte) (*HiveCaseMulti, error) {
 	var url = fmt.Sprintf("%s%s", hive.Url, "/api/case/_search?sort=%2Btlp&range=all")
 	hive.Ro.JSON = search
 
-	resp, err := grequests.Post(url, &hive.Ro)
-	return resp, err
+	ret, err := grequests.Post(url, &hive.Ro)
+
+	// Not yet fixed
+	parsedRet := new(HiveCaseMulti)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // Gets an alert based on the alert_id
-func (hive *Hivedata) GetAlert(alert_id string) (*grequests.Response, error) {
+func (hive *Hivedata) GetAlert(alert_id string) (*HiveAlert, error) {
 	var url, urlpath string
 
 	urlpath = fmt.Sprintf("/api/alert/%s", alert_id)
 	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
 
-	resp, err := grequests.Get(url, &hive.Ro)
-	return resp, err
+	ret, err := grequests.Get(url, &hive.Ro)
+
+	parsedRet := new(HiveAlert)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // Gets all tasks for a specific case
-func (hive *Hivedata) GetCaseTasks(caseId string) (*grequests.Response, error) {
+func (hive *Hivedata) GetCaseTasks(caseId string) (*CaseTaskMulti, error) {
 	urlpath := fmt.Sprintf("/api/case/%s/task/_search?range=all", caseId)
 	jsonQuery := fmt.Sprintf(`{"_parent": {"_type": "case", "_query": {"id": "%s"}}}`, caseId)
 	jsondata := []byte(jsonQuery)
@@ -228,23 +357,35 @@ func (hive *Hivedata) GetCaseTasks(caseId string) (*grequests.Response, error) {
 
 	url := fmt.Sprintf("%s%s", hive.Url, urlpath)
 
-	resp, err := grequests.Post(url, &hive.Ro)
-	return resp, err
+	ret, err := grequests.Post(url, &hive.Ro)
+
+	parsedRet := new(CaseTaskMulti)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet.Detail)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
-func (hive *Hivedata) GetTaskLogs(taskId string) (*grequests.Response, error) {
+// Gets all tasklogs for a task
+// FIX - might not work yet, needs query
+func (hive *Hivedata) GetTaskLogs(taskId string) (*CaseTaskLogRespMulti, error) {
 	var url, urlpath string
 
 	urlpath = fmt.Sprintf("/api/case/task/%s", taskId)
 	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
 
-	resp, err := grequests.Get(url, &hive.Ro)
-	return resp, err
+	ret, err := grequests.Get(url, &hive.Ro)
+
+	parsedRet := new(CaseTaskLogRespMulti)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet.Detail)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // Gets a field and values in the field
 // Easier to use than manually creating the query (findAlertsRaw)
-func (hive *Hivedata) FindAlertsQuery(queryfield string, queryvalues []string) (*grequests.Response, error) {
+func (hive *Hivedata) FindAlertsQuery(queryfield string, queryvalues []string) (*HiveAlertMulti, error) {
 	// Sorts by tlp by default
 	var url string
 
@@ -281,28 +422,49 @@ func (hive *Hivedata) FindAlertsQuery(queryfield string, queryvalues []string) (
 
 	hive.Ro.JSON = jsonsearch
 
-	resp, err := grequests.Post(url, &hive.Ro)
-	return resp, err
+	ret, err := grequests.Post(url, &hive.Ro)
+
+	parsedRet := new(HiveAlertMulti)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet.Detail)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // Gets a raw json query and returns all data
-func (hive *Hivedata) FindAlertsRaw(search []byte) (*grequests.Response, error) {
+func (hive *Hivedata) FindAlertsRaw(search []byte) (*HiveAlertMulti, error) {
 	var url string
 	url = fmt.Sprintf("%s%s", hive.Url, "/api/alert/_search?range=all")
 
 	hive.Ro.JSON = search
 
-	resp, err := grequests.Post(url, &hive.Ro)
-	return resp, err
+	ret, err := grequests.Post(url, &hive.Ro)
+
+	parsedRet := new(HiveAlertMulti)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet.Detail)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
-// Creates a case
-func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string) (*grequests.Response, error) {
+// Defines the creation of an alert
+// Takes two parameters:
+//  1. artifacts []Artifact
+//  2. title string
+//  3. description string
+//  4. tlp int
+// 	5. severity int
+// 	6. tags []string
+//  7. types string
+// 	8. source string
+// 	9. sourceref string
+// Returns HiveAlert struct and response error
+func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string) (*HiveAlert, error) {
 
-	var alert AlertData
+	var alert HiveAlert
 	var url string
 
-	alert = AlertData{
+	alert = HiveAlert{
 		Title:       title,
 		Description: description,
 		Tlp:         tlp,
@@ -317,7 +479,7 @@ func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, descriptio
 	jsondata, err := json.Marshal(alert)
 
 	if err != nil {
-		return nil, err
+		return &HiveAlert{}, err
 	}
 
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
@@ -325,7 +487,13 @@ func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, descriptio
 	url = fmt.Sprintf("%s%s", hive.Url, "/api/alert")
 	ret, err := grequests.Post(url, &hive.Ro)
 
-	return ret, err
+	parsedRet := new(HiveAlert)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
+
+	//return ret, err
 }
 
 // Runs analysis on an artifact

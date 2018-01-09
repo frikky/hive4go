@@ -13,7 +13,7 @@ go get github.com/frikky/hive4go
 import "github.com/frikky/hive4go"
 ```
 
-# Example usage
+# Create case example
 Set logindata, used for any interactive APIcall 
 ```Go
 verifyCert := false
@@ -35,18 +35,30 @@ resp, err := login.CreateCase(
 )
 ```
 
-More can be found in the samples folder.
+This will return a case with the following structure. 
+```Go
+type HiveCase struct {
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Tlp         int        `json:"tlp"`
+	Severity    int        `json:"severity"`
+	Tags        []string   `json:"tags"`
+	Tasks       []CaseTask `json:"tasks"`
+	Flag        bool       `json:"flag"`
+	Raw         []byte     `json:"-"`
+}
+```
+
+All return types (alerts, artifacts etc.) follow this type. If you want to handle 
+it as raw json, use response.Raw.
 
 # Todos
-* [Some finished] Written tests, needs formatting for publishing 
-* Implement kwargs somehow (Currently statically typed, keep old stuff too)
-* Requirements file for running (e.g. grequests)
+* [Some finished] Write tests for functions
 * Create an actual readme
-
-## Small fixes:)
-* Implement files and file add examples
+* Push function documentation
+* Implement fileupload
 * Implement proxy configuration 
 * Implement custom case fields 
-* Implement startdate for casetask 
-* Implement range and sort 
-* Make use of the new search format
+* Implement datestamps 
+* Make use of the new search format (query.py in hive4py)
+* Cleanup

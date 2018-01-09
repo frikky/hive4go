@@ -59,6 +59,10 @@ type CaseTask struct {
 	Owner       string `json:"owner"`
 	Description string `json:"description"`
 	Flag        bool   `json:"flag"`
+	CreatedBy   string `json:"createdBy"`
+	Order       int    `json:"order"`
+	Id          string `json:"id"`
+	Type        string `json:"_type"`
 }
 
 // FIX - missing file upload
@@ -103,6 +107,7 @@ func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*greque
 
 	url = fmt.Sprintf("%s/api/case/task/%s/log", hive.Url, taskId)
 	ret, err := grequests.Post(url, &hive.Ro)
+
 	return ret, err
 }
 
@@ -127,7 +132,6 @@ func (hive *Hivedata) CreateCaseTask(caseId string, casetask CaseTask) (*greques
 
 // Creates a case and returns based on input data
 // Missing date
-// FIX - All exits
 func (hive *Hivedata) CreateCase(title string, description string, tlp int, severity int, tasks []CaseTask, tags []string, flag bool) (*grequests.Response, error) {
 	var curcase Hivecase
 	var url string
@@ -214,6 +218,20 @@ func (hive *Hivedata) GetAlert(alert_id string) (*grequests.Response, error) {
 	return resp, err
 }
 
+// Gets all tasks for a specific case
+func (hive *Hivedata) GetCaseTasks(caseId string) (*grequests.Response, error) {
+	urlpath := fmt.Sprintf("/api/case/%s/task/_search?range=all", caseId)
+	jsonQuery := fmt.Sprintf(`{"_parent": {"_type": "case", "_query": {"id": "%s"}}}`, caseId)
+	jsondata := []byte(jsonQuery)
+
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	url := fmt.Sprintf("%s%s", hive.Url, urlpath)
+
+	resp, err := grequests.Post(url, &hive.Ro)
+	return resp, err
+}
+
 func (hive *Hivedata) GetTaskLogs(taskId string) (*grequests.Response, error) {
 	var url, urlpath string
 
@@ -225,6 +243,7 @@ func (hive *Hivedata) GetTaskLogs(taskId string) (*grequests.Response, error) {
 }
 
 // Gets a field and values in the field
+// Easier to use than manually creating the query (findAlertsRaw)
 func (hive *Hivedata) FindAlertsQuery(queryfield string, queryvalues []string) (*grequests.Response, error) {
 	// Sorts by tlp by default
 	var url string

@@ -15,10 +15,9 @@ import (
 
 // Stores login data
 type Hivedata struct {
-	Url      string
-	Username string
-	Password string
-	Ro       grequests.RequestOptions
+	Url    string
+	Apikey string
+	Ro     grequests.RequestOptions
 }
 
 // Stores a hive case
@@ -82,6 +81,7 @@ type CaseTask struct {
 	Owner       string `json:"owner"`
 	Description string `json:"description"`
 	Flag        bool   `json:"flag"`
+	ObjectId    string `json:"objectId"`
 	Raw         []byte `json:"-"`
 }
 
@@ -153,7 +153,8 @@ type CaseTaskLogRespMulti struct {
 func CreateLogin(inurl string, apikey string, verify bool) Hivedata {
 	formattedApikey := fmt.Sprintf("Bearer %s", apikey)
 	return Hivedata{
-		Url: inurl,
+		Url:    inurl,
+		Apikey: apikey,
 		Ro: grequests.RequestOptions{
 			Headers: map[string]string{
 				"Content-Type":  "application/json",
@@ -291,6 +292,25 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string, ioc 
 	return curartifact
 }
 
+func (hive *Hivedata) GetTask(taskId string) error {
+	var url, urlpath string
+
+	urlpath = fmt.Sprintf("/api/case/task/%s/log", taskId)
+	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
+
+	//AWDgKowhY8ARlkvwCKjq
+	ret, err := grequests.Get(url, &hive.Ro)
+
+	/*
+		parsedRet := new(HiveCase)
+		_ = json.Unmarshal(ret.Bytes(), parsedRet)
+		parsedRet.Raw = ret.Bytes()
+	*/
+	fmt.Println(ret)
+
+	return err
+}
+
 // Defines creation of a case task within a case
 // Takes two parameters:
 //  1. title string
@@ -348,7 +368,8 @@ func (hive *Hivedata) GetAlert(alert_id string) (*HiveAlert, error) {
 }
 
 // Gets all tasks for a specific case
-func (hive *Hivedata) GetCaseTasks(caseId string) (*CaseTaskMulti, error) {
+// FIX - error in how it returns .Detail
+func (hive *Hivedata) GetCaseTasks(caseId string) (*CaseTaskRespMulti, error) {
 	urlpath := fmt.Sprintf("/api/case/%s/task/_search?range=all", caseId)
 	jsonQuery := fmt.Sprintf(`{"_parent": {"_type": "case", "_query": {"id": "%s"}}}`, caseId)
 	jsondata := []byte(jsonQuery)
@@ -359,26 +380,34 @@ func (hive *Hivedata) GetCaseTasks(caseId string) (*CaseTaskMulti, error) {
 
 	ret, err := grequests.Post(url, &hive.Ro)
 
-	parsedRet := new(CaseTaskMulti)
-	_ = json.Unmarshal(ret.Bytes(), parsedRet.Detail)
+	parsedRet := new(CaseTaskRespMulti)
+	json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
 	parsedRet.Raw = ret.Bytes()
 
 	return parsedRet, err
 }
 
-// Gets all tasklogs for a task
-// FIX - might not work yet, needs query
+// Finally works!!!
 func (hive *Hivedata) GetTaskLogs(taskId string) (*CaseTaskLogRespMulti, error) {
-	var url, urlpath string
+	// Remove the header as the endpoint doesn't accept application/json..
+	hive.Ro.Headers = map[string]string{
+		"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+	}
 
-	urlpath = fmt.Sprintf("/api/case/task/%s", taskId)
-	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
+	urlpath := fmt.Sprintf("/api/case/task/%s/log?range=all", taskId)
+	url := fmt.Sprintf("%s%s", hive.Url, urlpath)
 
 	ret, err := grequests.Get(url, &hive.Ro)
 
 	parsedRet := new(CaseTaskLogRespMulti)
-	_ = json.Unmarshal(ret.Bytes(), parsedRet.Detail)
 	parsedRet.Raw = ret.Bytes()
+	json.Unmarshal(parsedRet.Raw, &parsedRet.Detail)
+
+	// Rebuild it
+	hive.Ro.Headers = map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+	}
 
 	return parsedRet, err
 }

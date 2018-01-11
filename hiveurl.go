@@ -22,14 +22,15 @@ type Hivedata struct {
 
 // Stores a hive case
 type HiveCase struct {
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Tlp         int        `json:"tlp"`
-	Severity    int        `json:"severity"`
-	Tags        []string   `json:"tags"`
-	Tasks       []CaseTask `json:"tasks"`
-	Flag        bool       `json:"flag"`
-	Raw         []byte     `json:"-"`
+	Title        string                 `json:"title"`
+	Description  string                 `json:"description"`
+	Tlp          int                    `json:"tlp"`
+	Severity     int                    `json:"severity"`
+	Tags         []string               `json:"tags"`
+	Tasks        []CaseTask             `json:"tasks"`
+	Flag         bool                   `json:"flag"`
+	CustomFields map[string]interface{} `json:"customFields"`
+	Raw          []byte                 `json:"-"`
 }
 
 // Stores multiple hive cases from searches
@@ -81,9 +82,10 @@ type CaseTask struct {
 	Owner       string `json:"owner"`
 	Description string `json:"description"`
 	Flag        bool   `json:"flag"`
-	ObjectId    string `json:"objectId"`
 	Raw         []byte `json:"-"`
 }
+
+//ObjectId    string `json:"objectId"`
 
 // Stores multiple tasks from searches
 type CaseTaskMulti struct {
@@ -191,6 +193,25 @@ func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*CaseTa
 	parsedRet := new(CaseTaskLogResponse)
 	_ = json.Unmarshal(ret.Bytes(), parsedRet)
 	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
+}
+
+// Add one at a time
+// FIX - only supports string currently
+func (hive *Hivedata) AddCustomFieldData(caseId string, name string, data string) (*HiveCase, error) {
+	jsonQuery := fmt.Sprintf(`{"customFields.%s": {"string": "%s"}}`, name, data)
+	jsondata := []byte(jsonQuery)
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	url := fmt.Sprintf("%s/api/case/%s", hive.Url, caseId)
+	//resp, err := grequests.Post(url, &hive.Ro)
+	resp, err := grequests.Patch(url, &hive.Ro)
+	fmt.Println(resp)
+
+	parsedRet := new(HiveCase)
+	_ = json.Unmarshal(resp.Bytes(), parsedRet)
+	parsedRet.Raw = resp.Bytes()
 
 	return parsedRet, err
 }
@@ -345,7 +366,7 @@ func (hive *Hivedata) FindCases(search []byte) (*HiveCaseMulti, error) {
 
 	// Not yet fixed
 	parsedRet := new(HiveCaseMulti)
-	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	_ = json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
 	parsedRet.Raw = ret.Bytes()
 
 	return parsedRet, err

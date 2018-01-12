@@ -39,6 +39,24 @@ type HiveCaseMulti struct {
 	Detail []HiveCase
 }
 
+type HiveCaseResp struct {
+	Title        string                 `json:"title"`
+	Description  string                 `json:"description"`
+	Tlp          int                    `json:"tlp"`
+	Severity     int                    `json:"severity"`
+	Tags         []string               `json:"tags"`
+	Tasks        []CaseTask             `json:"tasks"`
+	Flag         bool                   `json:"flag"`
+	CustomFields map[string]interface{} `json:"customFields"`
+	Id           string                 `json:"id"`
+	Raw          []byte                 `json:"-"`
+}
+
+type HiveCaseRespMulti struct {
+	Raw    []byte
+	Detail []HiveCaseResp
+}
+
 // Stores an artifact
 type Artifact struct {
 	DataType string   `json:"dataType"`
@@ -83,6 +101,7 @@ type CaseTask struct {
 	Description string `json:"description"`
 	Flag        bool   `json:"flag"`
 	Raw         []byte `json:"-"`
+	Id          string `json:"id"`
 }
 
 //ObjectId    string `json:"objectId"`
@@ -207,7 +226,6 @@ func (hive *Hivedata) AddCustomFieldData(caseId string, name string, data string
 	url := fmt.Sprintf("%s/api/case/%s", hive.Url, caseId)
 	//resp, err := grequests.Post(url, &hive.Ro)
 	resp, err := grequests.Patch(url, &hive.Ro)
-	fmt.Println(resp)
 
 	parsedRet := new(HiveCase)
 	_ = json.Unmarshal(resp.Bytes(), parsedRet)
@@ -259,12 +277,13 @@ func (hive *Hivedata) CreateCase(title string, description string, tlp int, seve
 	var url string
 
 	if title == "" {
-		fmt.Println("Title not set.")
-		// WHat do I do here? idk
+		fmt.Println("Missing title in API call. Set title.")
+		title = "Missing title in API call"
 	}
 
 	if description == "" {
 		fmt.Println("Description not set.")
+		description = ""
 	}
 
 	// Creates case struct for json usage
@@ -319,15 +338,11 @@ func (hive *Hivedata) GetTask(taskId string) error {
 	urlpath = fmt.Sprintf("/api/case/task/%s/log", taskId)
 	url = fmt.Sprintf("%s%s", hive.Url, urlpath)
 
-	//AWDgKowhY8ARlkvwCKjq
 	ret, err := grequests.Get(url, &hive.Ro)
 
-	/*
-		parsedRet := new(HiveCase)
-		_ = json.Unmarshal(ret.Bytes(), parsedRet)
-		parsedRet.Raw = ret.Bytes()
-	*/
-	fmt.Println(ret)
+	parsedRet := new(CaseTaskRespMulti)
+	_ = json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
+	parsedRet.Raw = ret.Bytes()
 
 	return err
 }
@@ -358,14 +373,14 @@ func (hive *Hivedata) GetCase(case_id string) (*HiveCase, error) {
 }
 
 // Finds all cases based on search parameter
-func (hive *Hivedata) FindCases(search []byte) (*HiveCaseMulti, error) {
+func (hive *Hivedata) FindCases(search []byte) (*HiveCaseRespMulti, error) {
 	var url = fmt.Sprintf("%s%s", hive.Url, "/api/case/_search?sort=%2Btlp&range=all")
 	hive.Ro.JSON = search
 
 	ret, err := grequests.Post(url, &hive.Ro)
 
 	// Not yet fixed
-	parsedRet := new(HiveCaseMulti)
+	parsedRet := new(HiveCaseRespMulti)
 	_ = json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
 	parsedRet.Raw = ret.Bytes()
 

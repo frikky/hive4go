@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/levigross/grequests"
-	//"os"
 	"time"
 )
 
@@ -47,6 +46,7 @@ type HiveCaseResp struct {
 	Tags         []string               `json:"tags"`
 	Tasks        []CaseTask             `json:"tasks"`
 	Flag         bool                   `json:"flag"`
+	CreatedAt    int64                  `json:"createdAt"`
 	CustomFields map[string]interface{} `json:"customFields"`
 	Id           string                 `json:"id"`
 	Raw          []byte                 `json:"-"`
@@ -101,7 +101,6 @@ type CaseTask struct {
 	Description string `json:"description"`
 	Flag        bool   `json:"flag"`
 	Raw         []byte `json:"-"`
-	Id          string `json:"id"`
 }
 
 //ObjectId    string `json:"objectId"`
@@ -239,7 +238,7 @@ func (hive *Hivedata) AddCustomFieldData(caseId string, name string, data string
 //  1. caseId string
 //  2. casetask CaseTask
 // Returns CaseTask struct and response error
-func (hive *Hivedata) CreateCaseTask(caseId string, casetask CaseTask) (*CaseTask, error) {
+func (hive *Hivedata) CreateCaseTask(caseId string, casetask CaseTask) (*CaseTaskResponse, error) {
 	var url string
 	var err error
 	var jsondata []byte
@@ -255,7 +254,7 @@ func (hive *Hivedata) CreateCaseTask(caseId string, casetask CaseTask) (*CaseTas
 	url = fmt.Sprintf("%s/api/case/%s/task", hive.Url, caseId)
 	ret, err := grequests.Post(url, &hive.Ro)
 
-	parsedRet := new(CaseTask)
+	parsedRet := new(CaseTaskResponse)
 	_ = json.Unmarshal(ret.Bytes(), parsedRet)
 	parsedRet.Raw = ret.Bytes()
 
@@ -332,7 +331,7 @@ func AlertArtifact(dataType string, message string, tlp int, tags []string, ioc 
 	return curartifact
 }
 
-func (hive *Hivedata) GetTask(taskId string) error {
+func (hive *Hivedata) GetTask(taskId string) (*CaseTaskResponse, error) {
 	var url, urlpath string
 
 	urlpath = fmt.Sprintf("/api/case/task/%s/log", taskId)
@@ -340,11 +339,11 @@ func (hive *Hivedata) GetTask(taskId string) error {
 
 	ret, err := grequests.Get(url, &hive.Ro)
 
-	parsedRet := new(CaseTaskRespMulti)
-	_ = json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
+	parsedRet := new(CaseTaskResponse)
+	_ = json.Unmarshal(ret.Bytes(), &parsedRet)
 	parsedRet.Raw = ret.Bytes()
 
-	return err
+	return parsedRet, err
 }
 
 // Defines creation of a case task within a case

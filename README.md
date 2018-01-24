@@ -3,6 +3,8 @@ Hive4go is a _unofficial_ Golang API client for [TheHive](https://thehive-projec
 
 Based on https://github.com/CERT-BDF/TheHive4py
 
+This is made based on my own needs, and might be missing some specific functionality. Create an issue if you want it to support missing functions.
+
 
 # Install
 ```Bash
@@ -52,13 +54,7 @@ type HiveCase struct {
 All return types (alerts, artifacts etc.) follow this type. If you want to handle 
 it as raw json, use response.Raw.
 
-# Todos
+# In the works
 * [Some finished] Write tests for functions
-* Create an actual readme
-* Push function documentation
-* Implement fileupload
-* Implement proxy configuration 
-* Implement custom case fields 
-* Implement datestamps 
-* Make use of the new search format (query.py in hive4py)
-* Cleanup
+* Implement fileupload 
+* Add more timestamps 

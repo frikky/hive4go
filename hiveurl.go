@@ -560,41 +560,19 @@ func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, descriptio
 	//return ret, err
 }
 
-// Runs analysis on an artifact
-// FIX - doesn't work yet as it only contacts Cortex
-/*
-func (hive *Hivedata) AnalyzeArtifact(analyzerName string) (*grequests.Response, error) {
-	cortexUrl := "http://127.0.0.1:9001"
-	type AnalyzerAttribute struct {
-		Tlp      int    `json:"tlp"`
-		DataType string `json:"dataType"`
-	}
-
-	type AnalyzerData struct {
-		Data       string            `json:"data"`
-		Attributes AnalyzerAttribute `json:"attributes"`
-	}
-
-	data := AnalyzerData{
-		Data: "8.8.8.8",
-		Attributes: AnalyzerAttribute{
-			Tlp:      2,
-			DataType: "ip",
-		},
-	}
-
-	jsondata, err := json.Marshal(data)
-
-	if err != nil {
-		return nil, err
-	}
+// Doesn't map back to a struct yet
+func (hive *Hivedata) AnalyzeArtifact(cortexId string, artifactId string, analyzerId string) (*grequests.Response, error) {
+	rawJson := fmt.Sprintf(`{"cortexId":"%s","artifactId":"%s","analyzerId":"%s"}`, cortexId, artifactId, analyzerId)
+	jsondata := []byte(rawJson)
 
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
 
-	//url := fmt.Sprintf("%s/api/analyzer/%s/run", hive.Url, analyzerName)
-	url := fmt.Sprintf("%s/api/analyzer/%s/run", cortexUrl, analyzerName)
+	url := fmt.Sprintf("%s/api/connector/cortex/job", hive.Url)
 	ret, err := grequests.Post(url, &hive.Ro)
 
-	return ret, err
+	if err != nil {
+		return ret, err
+	}
+
+	return ret, nil 
 }
-*/

@@ -56,5 +56,4 @@ it as raw json, use response.Raw.
 
 # In the works
 * [Some finished] Write tests for functions
-* Implement fileupload 
 * Add more timestamps 

@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	hive := thehive.CreateLogin("http://127.0.0.1:9000", "apikey", false)
+	hive := thehive.CreateLogin("https://192.168.159.137:9443", "lViAsT2BftaFsIN0aBTZm3Ei8EAEp/7P", false)
 
 	// Missing file
 	artifacts := []thehive.Artifact{
@@ -23,23 +23,18 @@ func main() {
 	fmt.Println("Create Alert")
 	fmt.Println("--------------------------")
 	alert, err := hive.CreateAlert(
-		artifacts,   // Artifacts
-		"New Alert", // Title
-		"N/A",       // Description
-		3,           // TLP
-		1,           // Severity
+		artifacts,     // Artifacts
+		"ASJDLASKLDJ", // Title
+		"HELO",        // Description
+		1,             // TLP
+		1,             // Severity
 		[]string{"hive4go", "sample"}, // Tags
-		"external",                    // Type
-		"instance1",                   // Source
-		sourceRef,                     // SourceRef
+		"SIEM",         // Type
+		"Carbon black", // Source
+		sourceRef,      // SourceRef
 	)
 
-	if err != nil || alert.StatusCode != 201 {
-		fmt.Println(err, alert.StatusCode)
-		os.Exit(1)
-	}
-
-	jsonData, err := simplejson.NewJson(alert.Bytes())
+	jsonData, err := simplejson.NewJson(alert.Raw)
 	ret, _ := jsonData.EncodePretty()
 	fmt.Println(string(ret))
 
@@ -50,13 +45,12 @@ func main() {
 	fmt.Println("--------------------------")
 
 	response, err := hive.GetAlert(id)
-	fmt.Println(response.StatusCode)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 
-	jsonData, err = simplejson.NewJson(response.Bytes())
+	jsonData, err = simplejson.NewJson(response.Raw)
 	ret, _ = jsonData.EncodePretty()
 	fmt.Println(string(ret))
 }

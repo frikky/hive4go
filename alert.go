@@ -130,6 +130,8 @@ func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, descriptio
 	var alert HiveAlert
 	var url string
 
+	// FUCK THIS :)
+	fmt.Println(artifacts)
 	alert = HiveAlert{
 		Title:       title,
 		Description: description,
@@ -192,6 +194,35 @@ func (hive *Hivedata) PatchAlertArtifact(alertId string, value []Artifact) (*Hiv
 
 	jsonRet, _ := json.Marshal(value)
 	jsondata := []byte(fmt.Sprintf(`{"artifacts": %s}`, string(jsonRet)))
+
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	ret, err := grequests.Patch(url, &hive.Ro)
+
+	parsedRet := new(HiveAlert)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
+}
+
+// Removes current tags and adds new ones
+// Takes two parameters:
+//  1. alertId string
+//  2. value []string
+// Returns HiveAlert struct and response error
+func (hive *Hivedata) PatchAlertTags(alertId string, value []string) (*HiveAlert, error) {
+	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+
+	// Better than looping and adding to a string
+	type tmpjson struct {
+		Tags []string `json:"tags"`
+	}
+
+	tmpstruct := tmpjson{}
+	tmpstruct.Tags = value
+
+	jsondata, _ := json.Marshal(tmpstruct)
 
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
 

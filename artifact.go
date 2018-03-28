@@ -22,16 +22,22 @@ type Artifact struct {
 	Message  string                 `json:"message"`
 	Tlp      int                    `json:"tlp"`
 	Tags     []string               `json:"tags"`
-	Ioc      bool                   `json:"ioc"`
 	Files    []grequests.FileUpload `json:"-"`
-	Data     string                 `json:"-"`
-	Raw      []byte                 `json:"-"`
+	Data     string                 `json:"data"`
+	Ioc      bool                   `json:"ioc"`
 }
+
+//Raw      []byte                 `json:"-"`
 
 // Stores multiple artifacts from searches
 type HiveArtifactMulti struct {
 	Raw    []byte
 	Detail []Artifact
+}
+
+type HiveArtifactMultiResponse struct {
+	Raw    []byte
+	Detail []ArtifactResponse
 }
 
 // Missing Reports
@@ -43,12 +49,44 @@ type ArtifactResponse struct {
 	_Id        string         `json:"_id"`
 	Tags       []string       `json:"tags"`
 	Message    string         `json:"message"`
+	Data       string         `json:"data"`
 	Ioc        bool           `json:"ioc"`
 	Status     string         `json:"status"`
 	Attachment FileAttachment `json:"attachment"`
 	Id         string         `json:"id"`
 	Type       string         `json:"_type"`
 	Raw        []byte         `json:"-"`
+}
+
+func (hive *Hivedata) GetCaseArtifacts(caseId string) (*HiveArtifactMultiResponse, error) {
+	url := fmt.Sprintf("%s/api/case/artifact/_search?range=all", hive.Url)
+
+	rawJson := fmt.Sprintf(
+		`{"query": {
+		"_and": [{
+			"_parent": {
+				"_type": "case", 
+				"_query": {
+					"_id": "AWHCBwmJGM-hjLdzubbW"
+				}
+			}
+		}, {
+			"status": "Ok"
+		}]
+	}}`,
+	)
+
+	jsondata := []byte(rawJson)
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	ret, err := grequests.Post(url, &hive.Ro)
+
+	//type HiveArtifactMulti struct {
+	parsedRet := new(HiveArtifactMultiResponse)
+	err = json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // FIX - Doesn't map back to a struct yet

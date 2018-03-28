@@ -16,6 +16,9 @@ type HiveCase struct {
 	Tags         []string               `json:"tags"`
 	Tasks        []CaseTask             `json:"tasks"`
 	Flag         bool                   `json:"flag"`
+	Status       string                 `json:"status,omitempty"`
+	Id           string                 `json:"id,omitempty"`
+	Owner        string                 `json:"owner,omitempty"`
 	CustomFields map[string]interface{} `json:"customFields"`
 	Raw          []byte                 `json:"-"`
 }
@@ -35,6 +38,8 @@ type HiveCaseResp struct {
 	Tags         []string               `json:"tags"`
 	Tasks        []CaseTask             `json:"tasks"`
 	Flag         bool                   `json:"flag"`
+	Owner        string                 `json:"owner"`
+	Status       string                 `json:"status"`
 	CreatedAt    int64                  `json:"createdAt"`
 	CustomFields map[string]interface{} `json:"customFields"`
 	Id           string                 `json:"id"`
@@ -112,7 +117,7 @@ func (hive *Hivedata) CreateCase(title string, description string, tlp int, seve
 // 	6. tags []string
 // 	7. flag bool
 // Returns HiveCase struct and response error
-func (hive *Hivedata) GetCase(case_id string) (*HiveCase, error) {
+func (hive *Hivedata) GetCase(case_id string) (*HiveCaseResp, error) {
 	var url, urlpath string
 
 	urlpath = fmt.Sprintf("/api/case/%s", case_id)
@@ -120,7 +125,7 @@ func (hive *Hivedata) GetCase(case_id string) (*HiveCase, error) {
 
 	ret, err := grequests.Get(url, &hive.Ro)
 
-	parsedRet := new(HiveCase)
+	parsedRet := new(HiveCaseResp)
 	_ = json.Unmarshal(ret.Bytes(), parsedRet)
 	parsedRet.Raw = ret.Bytes()
 

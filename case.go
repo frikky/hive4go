@@ -31,19 +31,22 @@ type HiveCaseMulti struct {
 
 // Stores the response of a case from thehive
 type HiveCaseResp struct {
-	Title        string                 `json:"title"`
-	Description  string                 `json:"description"`
-	Tlp          int                    `json:"tlp"`
-	Severity     int                    `json:"severity"`
-	Tags         []string               `json:"tags"`
-	Tasks        []CaseTask             `json:"tasks"`
-	Flag         bool                   `json:"flag"`
-	Owner        string                 `json:"owner"`
-	Status       string                 `json:"status"`
-	CreatedAt    int64                  `json:"createdAt"`
-	CustomFields map[string]interface{} `json:"customFields"`
-	Id           string                 `json:"id"`
-	Raw          []byte                 `json:"-"`
+	Title            string                 `json:"title"`
+	Description      string                 `json:"description"`
+	Tlp              int                    `json:"tlp"`
+	Severity         int                    `json:"severity"`
+	Tags             []string               `json:"tags"`
+	Tasks            []CaseTask             `json:"tasks"`
+	Flag             bool                   `json:"flag"`
+	Owner            string                 `json:"owner"`
+	Status           string                 `json:"status"`
+	CreatedAt        int64                  `json:"createdAt"`
+	CustomFields     map[string]interface{} `json:"customFields"`
+	Id               string                 `json:"id"`
+	Summary          string                 `json:"summary"`
+	ResolutionStatus string                 `json:"resolutionStatus"`
+	ImpactStatus     string                 `json:"impactStatus"`
+	Raw              []byte                 `json:"-"`
 }
 
 // Stores a response if there are multiple cases
@@ -146,6 +149,29 @@ func (hive *Hivedata) FindCases(search []byte) (*HiveCaseRespMulti, error) {
 	parsedRet := new(HiveCaseRespMulti)
 	_ = json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
 	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
+}
+
+// Defines case task log creation
+// Takes three parameters:
+//  1. caseId string
+//  2. name string
+//  3. data string
+// Returns CaseTaskLogresponse struct and response error
+// FIX - only supports string currently
+func (hive *Hivedata) AddCustomFieldData(caseId string, name string, data string) (*HiveCase, error) {
+	jsonQuery := fmt.Sprintf(`{"customFields.%s": {"string": "%s"}}`, name, data)
+	jsondata := []byte(jsonQuery)
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	url := fmt.Sprintf("%s/api/case/%s", hive.Url, caseId)
+	//resp, err := grequests.Post(url, &hive.Ro)
+	resp, err := grequests.Patch(url, &hive.Ro)
+
+	parsedRet := new(HiveCase)
+	_ = json.Unmarshal(resp.Bytes(), parsedRet)
+	parsedRet.Raw = resp.Bytes()
 
 	return parsedRet, err
 }

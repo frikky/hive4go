@@ -115,29 +115,6 @@ func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*CaseTa
 	return parsedRet, err
 }
 
-// Defines case task log creation
-// Takes three parameters:
-//  1. caseId string
-//  2. name string
-//  3. data string
-// Returns CaseTaskLogresponse struct and response error
-// FIX - only supports string currently
-func (hive *Hivedata) AddCustomFieldData(caseId string, name string, data string) (*HiveCase, error) {
-	jsonQuery := fmt.Sprintf(`{"customFields.%s": {"string": "%s"}}`, name, data)
-	jsondata := []byte(jsonQuery)
-	hive.Ro.RequestBody = bytes.NewReader(jsondata)
-
-	url := fmt.Sprintf("%s/api/case/%s", hive.Url, caseId)
-	//resp, err := grequests.Post(url, &hive.Ro)
-	resp, err := grequests.Patch(url, &hive.Ro)
-
-	parsedRet := new(HiveCase)
-	_ = json.Unmarshal(resp.Bytes(), parsedRet)
-	parsedRet.Raw = resp.Bytes()
-
-	return parsedRet, err
-}
-
 // Gets all tasks for a specific case
 // Takes one argument
 // 1. taskId string

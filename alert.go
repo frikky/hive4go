@@ -17,6 +17,7 @@ type HiveAlert struct {
 	Type        string     `json:"type"`
 	Source      string     `json:"source"`
 	SourceRef   string     `json:"sourceRef"`
+	Date        string     `json:"date,omitempty"`
 	Artifacts   []Artifact `json:"artifacts"`
 	Raw         []byte     `json:"-"`
 }
@@ -141,7 +142,7 @@ func (hive *Hivedata) FindAlertsRaw(search []byte) (*HiveAlertMulti, error) {
 // 	8. source string
 // 	9. sourceref string
 // Returns HiveAlert struct and response error
-func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string) (*AlertResponse, error) {
+func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string, date string) (*AlertResponse, error) {
 
 	var alert HiveAlert
 	var url string
@@ -156,6 +157,10 @@ func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, descriptio
 		SourceRef:   sourceref,
 		Source:      source,
 		Severity:    severity,
+	}
+
+	if date != "" {
+		alert.Date = date
 	}
 
 	jsondata, err := json.Marshal(alert)
@@ -186,6 +191,28 @@ func (hive *Hivedata) PatchAlertFieldString(alertId string, field string, value 
 	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
 
 	data := fmt.Sprintf(`{"%s": "%s"}`, field, value)
+	jsondata := []byte(data)
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	ret, err := grequests.Patch(url, &hive.Ro)
+
+	parsedRet := new(AlertResponse)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
+}
+
+// Defines the modification of an alert
+// Takes three parameters:
+//  1. alertId string
+//  2. field struct
+//  3. value struct
+// Returns HiveAlert struct and response error
+func (hive *Hivedata) PatchAlertFieldInt(alertId string, field string, value int) (*AlertResponse, error) {
+	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+
+	data := fmt.Sprintf(`{"%s": %s}`, field, value)
 	jsondata := []byte(data)
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
 
@@ -276,6 +303,21 @@ func (hive *Hivedata) PatchAlertTags(alertId string, value []string) (*AlertResp
 	parsedRet.Raw = ret.Bytes()
 
 	return parsedRet, err
+}
+
+func (hive *Hivedata) MarkAlertAsUnread(alertId string) (*AlertResponse, error) {
+	url := fmt.Sprintf("%s/api/alert/%s/markAsUnread", hive.Url, alertId)
+	ret, err := grequests.Post(url, &hive.Ro)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedRet := new(AlertResponse)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
+
 }
 
 func (hive *Hivedata) MarkAlertAsRead(alertId string) (*AlertResponse, error) {

@@ -16,6 +16,7 @@ type HiveCase struct {
 	Tags         []string               `json:"tags"`
 	Tasks        []CaseTask             `json:"tasks"`
 	Flag         bool                   `json:"flag"`
+	Date         int64                  `json:"date,omitempty"`
 	Status       string                 `json:"status,omitempty"`
 	Id           string                 `json:"id,omitempty"`
 	Owner        string                 `json:"owner,omitempty"`
@@ -35,6 +36,7 @@ type HiveCaseResp struct {
 	Description      string                 `json:"description"`
 	Tlp              int                    `json:"tlp"`
 	Severity         int                    `json:"severity"`
+	Date             int64                  `json:"date,omitempty"`
 	Tags             []string               `json:"tags"`
 	Tasks            []CaseTask             `json:"tasks"`
 	Flag             bool                   `json:"flag"`
@@ -172,6 +174,23 @@ func (hive *Hivedata) AddCustomFieldData(caseId string, name string, data string
 	parsedRet := new(HiveCase)
 	_ = json.Unmarshal(resp.Bytes(), parsedRet)
 	parsedRet.Raw = resp.Bytes()
+
+	return parsedRet, err
+}
+
+func (hive *Hivedata) PatchCaseFieldInt(alertId string, field string, value int64) (*HiveCase, error) {
+	url := fmt.Sprintf("%s/api/case/%s", hive.Url, alertId)
+
+	data := fmt.Sprintf(`{"%s": %d}`, field, value)
+	fmt.Println(data)
+	jsondata := []byte(data)
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+
+	ret, err := grequests.Patch(url, &hive.Ro)
+
+	parsedRet := new(HiveCase)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
 
 	return parsedRet, err
 }

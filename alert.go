@@ -2,9 +2,11 @@ package thehive
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/levigross/grequests"
+	"strings"
 )
 
 // Stores a hive alert
@@ -18,6 +20,7 @@ type HiveAlert struct {
 	Source      string     `json:"source"`
 	SourceRef   string     `json:"sourceRef"`
 	Date        string     `json:"date,omitempty"`
+	Owner       string     `json:"owner,omitempty"`
 	Artifacts   []Artifact `json:"artifacts"`
 	Raw         []byte     `json:"-"`
 }
@@ -33,6 +36,7 @@ type AlertResponse struct {
 	Id_         string     `json:"_id"`
 	Source      string     `json:"source"`
 	SourceRef   string     `json:"sourceRef"`
+	Owner       string     `json:"owner"`
 	Artifacts   []Artifact `json:"artifacts"`
 	Raw         []byte     `json:"-"`
 }
@@ -131,7 +135,7 @@ func (hive *Hivedata) FindAlertsRaw(search []byte) (*HiveAlertMulti, error) {
 }
 
 // Defines the creation of an alert
-// Takes two parameters:
+// Takes 10 parameters:
 //  1. artifacts []Artifact
 //  2. title string
 //  3. description string
@@ -141,17 +145,51 @@ func (hive *Hivedata) FindAlertsRaw(search []byte) (*HiveAlertMulti, error) {
 //  7. types string
 // 	8. source string
 // 	9. sourceref string
+// 	9. date string
 // Returns HiveAlert struct and response error
 func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string, date string) (*AlertResponse, error) {
 
 	var alert HiveAlert
 	var url string
 
+	// Handle files
+	newArtifacts := []Artifact{}
+	for _, item := range artifacts {
+		if item.DataType != "file" {
+			newArtifacts = append(newArtifacts, item)
+		}
+
+		fd, err := grequests.FileUploadFromDisk(item.Data)
+		if err != nil {
+			fmt.Println("here?")
+			continue
+		}
+
+		if fd[0].FileMime == "" {
+			fd[0].FileMime = "text/plain"
+		}
+
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(fd[0].FileContents)
+
+		realData := base64.StdEncoding.EncodeToString([]byte(buf.String()))
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		filenamesplit := strings.Split(fd[0].FileName, "/")
+		filename := filenamesplit[(len(filenamesplit))-1]
+
+		item.Data = fmt.Sprintf("%s;%s;%s", filename, fd[0].FileMime, realData)
+		newArtifacts = append(newArtifacts, item)
+	}
+
 	alert = HiveAlert{
 		Title:       title,
 		Description: description,
 		Tlp:         tlp,
-		Artifacts:   artifacts,
+		Artifacts:   newArtifacts,
 		Type:        types,
 		Tags:        tags,
 		SourceRef:   sourceref,
@@ -212,7 +250,7 @@ func (hive *Hivedata) PatchAlertFieldString(alertId string, field string, value 
 func (hive *Hivedata) PatchAlertFieldInt(alertId string, field string, value int) (*AlertResponse, error) {
 	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
 
-	data := fmt.Sprintf(`{"%s": %s}`, field, value)
+	data := fmt.Sprintf(`{"%s": %d}`, field, value)
 	jsondata := []byte(data)
 	hive.Ro.RequestBody = bytes.NewReader(jsondata)
 
@@ -230,50 +268,93 @@ func (hive *Hivedata) PatchAlertFieldInt(alertId string, field string, value int
 //  1. alertId string
 //  2. value []Artifact
 // Returns HiveAlert struct and response error
-func (hive *Hivedata) PatchAlertArtifact(alertId string, value []Artifact) (*AlertResponse, error) {
+func (hive *Hivedata) AddAlertArtifact(alertId string, artifact Artifact) (*AlertResponse, error) {
 	var ret *grequests.Response
-	var err error
 
-	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+	resp, err := hive.GetAlert(alertId)
+	if err != nil {
+		return nil, err
+	}
 
-	jsonRet, _ := json.Marshal(value)
+	if artifact.DataType != "file" {
+		resp.Artifacts = append(resp.Artifacts, artifact)
 
-	/*
-		// Attempt at adding files together with normal artifacts
-		for _, artifact := range value {
-			if artifact.DataType == "file" {
-				fileToUpload, err := grequests.FileUploadFromDisk(artifact.Data)
-				fileToUpload[0].FieldName = "attachment"
-
-				if err != nil {
-					return new(AlertResponse), err
-				}
-
-				hive.Ro.Files = fileToUpload
-				hive.Ro.Data = map[string]string{
-					"_json": fmt.Sprintf(`{"artifacts": %s}`, string(jsonRet)),
-				}
-
-				hive.Ro.Headers = map[string]string{
-					"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
-				}
-
-				ret, err = grequests.Patch(url, &hive.Ro)
-			}
+		// Custom solution because files suck. Couldn't get it to work with hive.Ro for some reason
+		marshalData, err := json.Marshal(resp.Artifacts)
+		if err != nil {
+			return nil, err
 		}
-	*/
 
-	jsondata := []byte(fmt.Sprintf(`{"artifacts": %s}`, string(jsonRet)))
+		//data := map[string]string{"artifacts": fmt.Sprintf("[%s]", string(marshalData))}
+		baseData := fmt.Sprintf("%s", string(marshalData))
+		data := fmt.Sprintf(`{"artifacts": %s}`, baseData)
 
-	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+		// Set fieldname for every single one
 
-	ret, err = grequests.Patch(url, &hive.Ro)
+		requestOptions := &grequests.RequestOptions{
+			//Files: fd,
+			//Data: data,
+			RequestBody: bytes.NewReader([]byte(data)),
+			Headers: map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+				"Content-Type":  "application/json",
+			},
+			InsecureSkipVerify: !false,
+		}
+
+		url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+		ret, err = grequests.Patch(url, requestOptions)
+	} else {
+		fd, err := grequests.FileUploadFromDisk(artifact.Data)
+		if err != nil {
+			fmt.Println("here?")
+			return nil, err
+		}
+
+		artifact.Data = ""
+		fd[0].FieldName = "attachment"
+
+		resp.Artifacts = []Artifact{}
+		resp.Artifacts = append(resp.Artifacts, artifact)
+
+		// Custom solution because files suck. Couldn't get it to work with hive.Ro for some reason
+		marshalData, err := json.Marshal(resp.Artifacts)
+		if err != nil {
+			fmt.Println("HERE)_))")
+			return nil, err
+		}
+
+		// FIXME - find more files etc
+		baseData := fmt.Sprintf("%s", string(marshalData))
+		tmpData := fmt.Sprintf(`{"artifacts": %s}`, baseData)
+		//data := map[string]string{"artifacts": fmt.Sprintf("%s", tmpData)}
+		fmt.Println(tmpData)
+
+		requestOptions := &grequests.RequestOptions{
+			Files: fd,
+			//Data:  data,
+			RequestBody: bytes.NewReader([]byte(tmpData)),
+			Headers: map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+				"Content-Type":  "application/json",
+			},
+			InsecureSkipVerify: !false,
+		}
+
+		url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+		fmt.Println(url)
+		ret, err = grequests.Patch(url, requestOptions)
+	}
 
 	parsedRet := new(AlertResponse)
-	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	err = json.Unmarshal(ret.Bytes(), parsedRet)
+	if err != nil {
+		return nil, err
+	}
+
 	parsedRet.Raw = ret.Bytes()
 
-	return parsedRet, err
+	return parsedRet, nil
 }
 
 // Removes current tags and adds new ones

@@ -45,9 +45,9 @@ type CaseTaskRespMulti struct {
 
 // Should maybe have title etc as well.
 type CaseTaskLog struct {
-	Message string                 `json:"message"`
-	Files   []grequests.FileUpload `json:"-"`
-	Raw     []byte                 `json:"-"`
+	Message string `json:"message"`
+	File    string `json:"-"`
+	Raw     []byte `json:"-"`
 }
 
 // Stores multiple casetasklogs
@@ -85,6 +85,7 @@ type CaseTaskLogRespMulti struct {
 func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*CaseTaskLogResponse, error) {
 	var url string
 	var err error
+	var ret *grequests.Response
 	var jsondata []byte
 
 	jsondata, err = json.Marshal(taskLog)
@@ -93,26 +94,49 @@ func (hive *Hivedata) CreateTaskLog(taskId string, taskLog CaseTaskLog) (*CaseTa
 	}
 
 	// If files exist
-	if taskLog.Files != nil {
-		hive.Ro.Files = taskLog.Files
-		hive.Ro.Data = map[string]string{
-			"_json": string(jsondata),
+	if taskLog.File != "" {
+		fd, err := grequests.FileUploadFromDisk(taskLog.File)
+		if err != nil {
+			return nil, err
 		}
-		hive.Ro.Headers = map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+
+		// Custom solution because files suck. Couldn't get it to work with hive.Ro for some reason
+		marshalData, err := json.Marshal(taskLog)
+		if err != nil {
+			return nil, err
 		}
+
+		data := map[string]string{"_json": fmt.Sprintf("%s", string(marshalData))}
+		fd[0].FieldName = "attachment"
+		requestOptions := &grequests.RequestOptions{
+			Files: fd,
+			Data:  data,
+			Headers: map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+			},
+			InsecureSkipVerify: !false,
+		}
+
+		url := fmt.Sprintf("%s/api/case/task/%s/log", hive.Url, taskId)
+		ret, err = grequests.Post(url, requestOptions)
 	} else {
 		hive.Ro.RequestBody = bytes.NewReader(jsondata)
+		url = fmt.Sprintf("%s/api/case/task/%s/log", hive.Url, taskId)
+		ret, err = grequests.Post(url, &hive.Ro)
 	}
 
-	url = fmt.Sprintf("%s/api/case/task/%s/log", hive.Url, taskId)
-	ret, err := grequests.Post(url, &hive.Ro)
+	if err != nil {
+		return new(CaseTaskLogResponse), err
+	}
 
 	parsedRet := new(CaseTaskLogResponse)
-	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	err = json.Unmarshal(ret.Bytes(), parsedRet)
 	parsedRet.Raw = ret.Bytes()
+	if err != nil {
+		return parsedRet, err
+	}
 
-	return parsedRet, err
+	return parsedRet, nil
 }
 
 // Gets all tasks for a specific case

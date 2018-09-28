@@ -23,7 +23,7 @@ type Artifact struct {
 	Tlp      int                    `json:"tlp"`
 	Tags     []string               `json:"tags"`
 	Files    []grequests.FileUpload `json:"-"`
-	Data     string                 `json:"data"`
+	Data     string                 `json:"data,omitempty"`
 	Ioc      bool                   `json:"ioc"`
 }
 
@@ -112,34 +112,47 @@ func (hive *Hivedata) AnalyzeArtifact(cortexId string, artifactId string, analyz
 //  2. caseArtifact Artifact struct
 // Returns ArtifactResponse struct and response error
 func (hive *Hivedata) AddCaseArtifact(caseId string, caseArtifact Artifact) (*ArtifactResponse, error) {
+	var err error
+	var ret *grequests.Response
+
 	url := fmt.Sprintf("%s/api/case/%s/artifact", hive.Url, caseId)
 	jsondata, err := json.Marshal(caseArtifact)
-	fmt.Println(string(jsondata))
 
 	if err != nil {
 		return new(ArtifactResponse), err
 	}
 
 	if caseArtifact.DataType == "file" {
-		fileToUpload, err := grequests.FileUploadFromDisk(caseArtifact.Data)
-		fileToUpload[0].FieldName = "attachment"
-
+		fd, err := grequests.FileUploadFromDisk(caseArtifact.Data)
 		if err != nil {
-			return new(ArtifactResponse), err
+			return nil, err
 		}
 
-		hive.Ro.Files = fileToUpload
-		hive.Ro.Data = map[string]string{
-			"_json": string(jsondata),
+		caseArtifact.Data = ""
+
+		// Custom solution because files suck. Couldn't get it to work with hive.Ro for some reason
+		marshalData, err := json.Marshal(caseArtifact)
+		if err != nil {
+			return nil, err
 		}
-		hive.Ro.Headers = map[string]string{
-			"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+
+		data := map[string]string{"_json": fmt.Sprintf("%s", string(marshalData))}
+
+		fd[0].FieldName = "attachment"
+		requestOptions := &grequests.RequestOptions{
+			Files: fd,
+			Data:  data,
+			Headers: map[string]string{
+				"Authorization": fmt.Sprintf("Bearer %s", hive.Apikey),
+			},
+			InsecureSkipVerify: !false,
 		}
+
+		ret, err = grequests.Post(url, requestOptions)
 	} else {
 		hive.Ro.RequestBody = bytes.NewReader(jsondata)
+		ret, err = grequests.Post(url, &hive.Ro)
 	}
-
-	ret, err := grequests.Post(url, &hive.Ro)
 
 	parsedRet := new(ArtifactResponse)
 	_ = json.Unmarshal(ret.Bytes(), parsedRet)

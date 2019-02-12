@@ -29,7 +29,7 @@ func CreateLogin(inurl string, apikey string, verify bool) Hivedata {
 				"Content-Type":  "application/json",
 				"Authorization": formattedApikey,
 			},
-			RequestTimeout:     time.Duration(10) * time.Second,
+			RequestTimeout:     time.Duration(30) * time.Second,
 			InsecureSkipVerify: !verify,
 		},
 	}

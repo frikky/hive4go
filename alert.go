@@ -11,34 +11,37 @@ import (
 
 // Stores a hive alert
 type HiveAlert struct {
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Severity    int        `json:"severity"`
-	Tlp         int        `json:"tlp"`
-	Tags        []string   `json:"tags"`
-	Type        string     `json:"type"`
-	Source      string     `json:"source"`
-	SourceRef   string     `json:"sourceRef"`
-	Date        string     `json:"date,omitempty"`
-	Owner       string     `json:"owner,omitempty"`
-	Artifacts   []Artifact `json:"artifacts"`
-	Raw         []byte     `json:"-"`
+	Title        string                 `json:"title"`
+	Description  string                 `json:"description"`
+	Severity     int                    `json:"severity"`
+	Tlp          int                    `json:"tlp"`
+	Tags         []string               `json:"tags"`
+	Type         string                 `json:"type"`
+	Source       string                 `json:"source"`
+	SourceRef    string                 `json:"sourceRef"`
+	Date         string                 `json:"date,omitempty"`
+	Owner        string                 `json:"owner,omitempty"`
+	CustomFields map[string]interface{} `json:"customFields,omitempty"`
+	Artifacts    []Artifact             `json:"artifacts"`
+	Raw          []byte                 `json:"-"`
 }
 
 type AlertResponse struct {
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Severity    int        `json:"severity"`
-	Tlp         int        `json:"tlp"`
-	Tags        []string   `json:"tags"`
-	Type        string     `json:"type"`
-	Id          string     `json:"id"`
-	Id_         string     `json:"_id"`
-	Source      string     `json:"source"`
-	SourceRef   string     `json:"sourceRef"`
-	Owner       string     `json:"owner"`
-	Artifacts   []Artifact `json:"artifacts"`
-	Raw         []byte     `json:"-"`
+	Title        string                 `json:"title"`
+	Description  string                 `json:"description"`
+	Severity     int                    `json:"severity"`
+	Tlp          int                    `json:"tlp"`
+	Tags         []string               `json:"tags"`
+	Type         string                 `json:"type"`
+	Id           string                 `json:"id"`
+	Id_          string                 `json:"_id"`
+	Source       string                 `json:"source"`
+	Status       string                 `json:"status"`
+	SourceRef    string                 `json:"sourceRef"`
+	Owner        string                 `json:"owner"`
+	CustomFields map[string]interface{} `json:"customFields,omitempty"`
+	Artifacts    []Artifact             `json:"artifacts"`
+	Raw          []byte                 `json:"-"`
 }
 
 // Stores multiple alerts from searches
@@ -123,12 +126,18 @@ func (hive *Hivedata) FindAlertsRaw(search []byte) (*HiveAlertMulti, error) {
 	var url string
 	url = fmt.Sprintf("%s%s", hive.Url, "/api/alert/_search?range=all")
 
+	//fmt.Println(string(search))
 	hive.Ro.JSON = search
 
 	ret, err := grequests.Post(url, &hive.Ro)
+	//fmt.Println(ret)
 
 	parsedRet := new(HiveAlertMulti)
 	err = json.Unmarshal(ret.Bytes(), &parsedRet.Detail)
+	if err != nil {
+		return &HiveAlertMulti{}, err
+	}
+
 	parsedRet.Raw = ret.Bytes()
 
 	return parsedRet, err
@@ -147,7 +156,7 @@ func (hive *Hivedata) FindAlertsRaw(search []byte) (*HiveAlertMulti, error) {
 // 	9. sourceref string
 // 	9. date string
 // Returns HiveAlert struct and response error
-func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string, date string) (*AlertResponse, error) {
+func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, description string, tlp int, severity int, tags []string, types string, source string, sourceref string, date string, urlRef string) (*AlertResponse, error) {
 
 	var alert HiveAlert
 	var url string
@@ -161,7 +170,6 @@ func (hive *Hivedata) CreateAlert(artifacts []Artifact, title string, descriptio
 
 		fd, err := grequests.FileUploadFromDisk(item.Data)
 		if err != nil {
-			fmt.Println("here?")
 			continue
 		}
 
@@ -307,7 +315,6 @@ func (hive *Hivedata) AddAlertArtifact(alertId string, artifact Artifact) (*Aler
 	} else {
 		fd, err := grequests.FileUploadFromDisk(artifact.Data)
 		if err != nil {
-			fmt.Println("here?")
 			return nil, err
 		}
 
@@ -355,6 +362,37 @@ func (hive *Hivedata) AddAlertArtifact(alertId string, artifact Artifact) (*Aler
 	parsedRet.Raw = ret.Bytes()
 
 	return parsedRet, nil
+}
+
+// Removes current tags and adds new ones
+// Takes two parameters:
+//  1. alertId string
+//  2. value []thehive.Artifact
+// Returns HiveAlert struct and response error
+func (hive *Hivedata) PatchAlertArtifacts(alertId string, value []Artifact) (*AlertResponse, error) {
+	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+
+	// Better than looping and adding to a string
+	type tmpjson struct {
+		Artifacts []Artifact `json:"artifacts"`
+	}
+
+	tmpstruct := tmpjson{}
+	tmpstruct.Artifacts = value
+
+	jsondata, err := json.Marshal(tmpstruct)
+	if err != nil {
+		return &AlertResponse{}, err
+	}
+
+	hive.Ro.RequestBody = bytes.NewReader(jsondata)
+	ret, err := grequests.Patch(url, &hive.Ro)
+
+	parsedRet := new(AlertResponse)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
 
 // Removes current tags and adds new ones
@@ -416,9 +454,22 @@ func (hive *Hivedata) MarkAlertAsRead(alertId string) (*AlertResponse, error) {
 
 }
 
-func (hive *Hivedata) GetAlert(alertId string) (*AlertResponse, error) {
+// Dirty hack to make customfields work
+func (hive *Hivedata) AddCustomFieldBool(alertId string, field string, value bool) (*AlertResponse, error) {
 	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
-	ret, err := grequests.Get(url, &hive.Ro)
+
+	alert, err := hive.GetAlert(alertId)
+	if err != nil {
+		return nil, err
+	}
+
+	alert.CustomFields[field] = map[string]bool{"boolean": value}
+	mapBytes, err := json.Marshal(alert.CustomFields)
+	data := fmt.Sprintf(`{"customFields": %s}`, string(mapBytes))
+
+	hive.Ro.RequestBody = bytes.NewReader([]byte(data))
+
+	ret, err := grequests.Patch(url, &hive.Ro)
 	if err != nil {
 		return nil, err
 	}
@@ -428,5 +479,48 @@ func (hive *Hivedata) GetAlert(alertId string) (*AlertResponse, error) {
 	parsedRet.Raw = ret.Bytes()
 
 	return parsedRet, err
+}
 
+// Dirty hack to make customfields work
+func (hive *Hivedata) AddCustomFieldString(alertId string, field string, value string) (*AlertResponse, error) {
+	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+
+	alert, err := hive.GetAlert(alertId)
+	if err != nil {
+		return nil, err
+	}
+
+	alert.CustomFields[field] = map[string]string{"string": value}
+	mapBytes, err := json.Marshal(alert.CustomFields)
+	data := fmt.Sprintf(`{"customFields": %s}`, string(mapBytes))
+
+	hive.Ro.RequestBody = bytes.NewReader([]byte(data))
+
+	ret, err := grequests.Patch(url, &hive.Ro)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedRet := new(AlertResponse)
+	_ = json.Unmarshal(ret.Bytes(), parsedRet)
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
+}
+
+func (hive *Hivedata) GetAlert(alertId string) (*AlertResponse, error) {
+	url := fmt.Sprintf("%s/api/alert/%s", hive.Url, alertId)
+	ret, err := grequests.Get(url, &hive.Ro)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedRet := new(AlertResponse)
+	err = json.Unmarshal(ret.Bytes(), parsedRet)
+	if err != nil {
+		return parsedRet, err
+	}
+	parsedRet.Raw = ret.Bytes()
+
+	return parsedRet, err
 }
